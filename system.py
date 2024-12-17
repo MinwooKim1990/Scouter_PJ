@@ -77,7 +77,6 @@ def main(is_save = True):
             display_frame = frame.copy()
             tracking_state = IO.get_tracking_state()
 
-            # 주기적인 메모리 정리 (10초마다)
             current_time = time.time()
             if current_time - last_cleanup_time > 10:
                 torch.cuda.empty_cache()
@@ -96,11 +95,9 @@ def main(is_save = True):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             else:
                 if tracking_state['click_point'] is not None:
-                    # 이전 결과 정리
                     if resource_manager.current_results is not None:
                         del resource_manager.current_results
                         
-                    # 예측 실행 시 메모리 최적화
                     with torch.no_grad():
                         resource_manager.current_results = model.predict(
                             frame, 
@@ -127,7 +124,6 @@ def main(is_save = True):
                             if should_process_sr:
                                 cropped_img = IO.crop_object(frame, bbox, padding=20)
                                 try:
-                                    # 이전 SR 이미지 정리
                                     if fixed_sr_img is not None and not resource_manager.fixed_mode:
                                         del fixed_sr_img
                                     
@@ -199,7 +195,7 @@ def main(is_save = True):
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 
                 current_fps = 1.0 / (time.time() - frame_start_time + 1e-6)
-                cv2.putText(display_frame, f"FPS: {int(current_fps)}", (20, 150),
+                cv2.putText(display_frame, f"Processing FPS: {int(current_fps)}", (20, 150),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         except Exception as e:
             print(f"Error in main loop: {e}")
@@ -224,10 +220,9 @@ def main(is_save = True):
             else:
                 print("녹음을 중지합니다.")
                 stt_overlay.stop_recording()
-        elif key == ord('c'):  # 'c' 키를 눌러 수동으로 메모리 정리
+        elif key == ord('c'):
             cleanup_tracking()
     
-    # 종료 시 정리
     cleanup_tracking()
     stt_overlay.cleanup()
     cap.release()
