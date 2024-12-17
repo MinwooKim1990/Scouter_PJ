@@ -66,7 +66,7 @@ python system.py
 |--------|------------|----------|
 | Select Object | Left Click | Activates detection & tracking |
 | Release Tracking | Right Click | Stops tracking current object |
-| Toggle Upscaling | F | Enhances tracked object quality |
+| Toggle Upscaling | F | Enable realtime upscaling |
 | Voice Recording | T | Start/Stop subtitle recording |
 
 ## Features
