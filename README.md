@@ -80,13 +80,13 @@ python system.py
 This project utilizes several open-source models:
 
 - **MobileSAM**: Zero-shot object detection - Apache-2.0 License
-  - Source: [Ultralytics MobileSAM](https://github.com/ultralytics/ultralytics)
+  - Source: [Ultralytics MobileSAM](https://docs.ultralytics.com/ko/models/mobile-sam/)
 - **Fast-SRGAN**: Real-time image upscaling - MIT License
-  - Source: Original Fast-SRGAN implementation
+  - Source: [Fast-SRGAN] (https://github.com/HasnainRaz/Fast-SRGAN)
 - **OpenAI Whisper**: Speech-to-text processing - MIT License
   - Source: [OpenAI Whisper](https://github.com/openai/whisper)
 - **Florence 2**: Image captioning - MIT License
-  - Source: [Microsoft Florence](https://github.com/microsoft/florence)
+  - Source: [Microsoft Florence](https://huggingface.co/microsoft/Florence-2-large)
 
 ## License
 This project is licensed under the MIT License since all major components use either MIT or Apache-2.0 licenses. The MIT License is compatible with both and maintains the open-source nature of the utilized models.
