@@ -20,8 +20,8 @@ An AI system inspired by Cyberpunk 2077 that combines several advanced features:
 
 1. Clone the repository
 ```bash
-git clone https://github.com/MinwooKim1990/Scouter_project.git
-cd Scouter_project
+git clone https://github.com/MinwooKim1990/Scouter_PJ.git
+cd Scouter_PJ
 ```
 
 2. Install dependencies
@@ -82,7 +82,7 @@ This project utilizes several open-source models:
 - **MobileSAM**: Zero-shot object detection - Apache-2.0 License
   - Source: [Ultralytics MobileSAM](https://docs.ultralytics.com/ko/models/mobile-sam/)
 - **Fast-SRGAN**: Real-time image upscaling - MIT License
-  - Source: [Fast-SRGAN] (https://github.com/HasnainRaz/Fast-SRGAN)
+  - Source: [Fast-SRGAN](https://github.com/HasnainRaz/Fast-SRGAN)
 - **OpenAI Whisper**: Speech-to-text processing - MIT License
   - Source: [OpenAI Whisper](https://github.com/openai/whisper)
 - **Florence 2**: Image captioning - MIT License
