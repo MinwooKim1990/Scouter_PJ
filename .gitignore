@@ -21,3 +21,6 @@ __pycache__/
 # 결과 파일
 result/
 models/
+
+# 특정 모델 파일 예외 처리
+!models/fsrgan_model.pt
