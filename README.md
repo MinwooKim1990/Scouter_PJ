@@ -76,6 +76,19 @@ python system.py
 - Speech-to-text subtitle generation
 - Cyberpunk-style overlay display
 
+## Technical Specifications
+### Hardware Requirements
+- **GPU**: NVIDIA GPU with CUDA support
+  - Minimum VRAM: 8GB
+  - Tested on: NVIDIA GPU RTX 4090
+- **Memory**: 2GB
+- **Storage**: 2.5GB
+
+### Performance Notes
+- Current version is optimized for VRAM efficiency
+- Peak VRAM usage: ~7GB during operation
+- Further optimization may be available in future updates
+
 ## Models & Attributions
 This project utilizes several open-source models:
 
