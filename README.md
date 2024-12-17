@@ -19,12 +19,19 @@ Additionally, the system incorporates speech-to-text (STT) technology, enabling 
 ```
 pip install -r requirements.txt
 ```
+
+```
 cd Scouter_project
+```
+
 ```
 mkdir data
 ```
+
+```
 cd data
 ```
+
 insert video file in data folder
 
 ```
