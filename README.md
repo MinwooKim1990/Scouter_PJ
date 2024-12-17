@@ -85,6 +85,9 @@ python system.py
 - **Storage**: 2.5GB
 
 ### Performance Notes
+- Tested 720P quality videos
+- Processing FPS Without Realtime Upscaling FPS: 30 ~ 40 FPS
+- Processing FPS during heaviest work load: 10 ~ 20 FPS
 - Current version is optimized for VRAM efficiency
 - Peak VRAM usage: ~7GB during operation (In Realtime Upscaling ~ 21GB during operation)
 - Further optimization may be available in future updates
