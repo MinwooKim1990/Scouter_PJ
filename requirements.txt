@@ -1,0 +1,12 @@
+Pillow
+torch
+numpy
+opencv-python
+sounddevice
+scipy
+whisper
+omegaconf
+transformers
+huggingface-hub
+unittest
+ultralytics
