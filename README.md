@@ -12,7 +12,7 @@ An AI system inspired by Cyberpunk 2077 that combines several advanced features:
 <table>
   <tr>
     <td><img src="https://github.com/user-attachments/assets/0c5e8926-57a7-42c0-bf76-7619836c0aa4" width="400" alt="Demo Screenshot 1"/></td>
-    <td><img src="https://github.com/user-attachments/assets/b24d2dc9-c3c8-4f19-a334-56ba1f9823e8" width="400" alt="Demo Screenshot 2"/></td>
+    <td><img src="https://github.com/user-attachments/assets/3504bd51-16c5-4421-9963-e9bc8a3ca06c" width="400" alt="Demo Screenshot 2"/></td>
   </tr>
 </table>
 
@@ -79,14 +79,14 @@ python system.py
 ## Technical Specifications
 ### Hardware Requirements
 - **GPU**: NVIDIA GPU with CUDA support
-  - Minimum VRAM: 8GB
+  - Minimum VRAM: 8GB (For realtime Upscaling: 24GB)
   - Tested on: NVIDIA GPU RTX 4090
 - **Memory**: 2GB
 - **Storage**: 2.5GB
 
 ### Performance Notes
 - Current version is optimized for VRAM efficiency
-- Peak VRAM usage: ~7GB during operation
+- Peak VRAM usage: ~7GB during operation (In Realtime Upscaling ~ 21GB during operation)
 - Further optimization may be available in future updates
 
 ## Models & Attributions
