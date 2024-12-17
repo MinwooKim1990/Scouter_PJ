@@ -23,4 +23,5 @@ result/
 models/
 
 # 특정 모델 파일 예외 처리
-!models/fsrgan_model.pt
+!models/    # 이렇게 폴더 먼저 예외처리
+!models/specific_model.pt  # 그 다음 특정 파일 예외처리
