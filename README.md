@@ -6,7 +6,7 @@ An AI system inspired by Cyberpunk 2077 that combines several advanced features:
 - Zero-shot object detection with detailed captioning
 - Real-time object enhancement and upscaling
 - Speech-to-text (STT) functionality for accessibility
-- Overlay display system similar to cyberpunk HUD elements
+- Overlay display system similar to Cyberpunk 2077 Scanner elements
 
 ## Demo Screenshots
 <table>
@@ -37,8 +37,14 @@ Place your video files in the `data` folder
 
 4. Run the application
 ```bash
-python system.py
+python system.py --video path/to/your/video.mp4
 ```
+
+5. For checking arguments help
+```bash
+python system.py --help
+```
+
 
 ## How to Use
 
