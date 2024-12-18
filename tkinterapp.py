@@ -15,65 +15,48 @@ class VideoDisplayApp:
         self.frame_queue = queue.Queue(maxsize=10)
         self.command_queue = queue.Queue()
         
+        # To track the video source
+        self.video_source = None
+        
         self.create_gui()
-        
-    def create_gui(self):
-        # Main control panel
-        self.control_panel = ttk.Frame(self.root)
-        self.control_panel.pack(fill=tk.X, pady=5, padx=5)
-        
-        # Left side - Video controls
-        video_controls = ttk.LabelFrame(self.control_panel, text="Video Controls")
-        video_controls.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        
-        ttk.Button(video_controls, text="Open Video", 
-                command=self.open_video).pack(side=tk.LEFT, padx=5)
-        ttk.Button(video_controls, text="Play/Pause", 
-                command=self.toggle_pause).pack(side=tk.LEFT, padx=5)
-        
-        # Right side - API Settings
-        api_frame = ttk.LabelFrame(self.control_panel, text="API Settings")
-        api_frame.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        
-        # STT API Key
-        ttk.Label(api_frame, text="STT API Key:").pack(side=tk.LEFT, padx=5)
-        self.stt_api_var = tk.StringVar()
-        ttk.Entry(api_frame, textvariable=self.stt_api_var, width=30).pack(side=tk.LEFT, padx=5)
-        
-        # Video display canvas
-        self.canvas = tk.Canvas(self.root, bg='black')
-        self.canvas.pack(fill=tk.BOTH, expand=True)
-        
-        # Bind mouse events
-        self.canvas.bind('<Button-1>', self.on_left_click)
-        self.canvas.bind('<Button-3>', self.on_right_click)
-        
-        # Bind keyboard events (space 제거)
-        self.root.bind('s', self.on_s_key)
-        self.root.bind('t', self.on_t_key)
-        self.root.bind('f', self.on_f_key)
 
-    def toggle_pause(self):
-        """Play/Pause 버튼 핸들러"""
-        self.command_queue.put({
-            'type': 'space'  # 기존 space 커맨드 재사용
-        })
-
+    def start_processing(self):
+        """비디오 처리 시작"""
+        self.system_thread = threading.Thread(
+            target=system_main,
+            args=(self.video_source, self.bing_api_var.get(), True, self.frame_queue, self.command_queue)
+        )
+        self.system_thread.start()
+        self.update_frame()
+        
     def create_gui(self):
         # Control panel
         self.control_panel = ttk.Frame(self.root)
         self.control_panel.pack(fill=tk.X, pady=5, padx=5)
         
         # Video controls
-        ttk.Button(self.control_panel, text="Open Video", 
-                command=self.open_video).pack(side=tk.LEFT, padx=5)
-        ttk.Button(self.control_panel, text="Play/Pause", 
-                command=self.toggle_pause).pack(side=tk.LEFT, padx=5)
+        video_controls = ttk.Frame(self.control_panel)
+        video_controls.pack(side=tk.LEFT, padx=5)
+        
+        # Video source buttons
+        ttk.Button(video_controls, text="Open Video", 
+                  command=self.open_video).pack(side=tk.LEFT, padx=5)
+        ttk.Button(video_controls, text="Connect Cam", 
+                  command=self.connect_camera).pack(side=tk.LEFT, padx=5)
+        ttk.Button(video_controls, text="Play/Pause", 
+                  command=self.toggle_pause).pack(side=tk.LEFT, padx=5)
+        
+        # Status label
+        self.status_var = tk.StringVar(value="Status: No video source")
+        ttk.Label(video_controls, textvariable=self.status_var).pack(side=tk.LEFT, padx=5)
         
         # Bing API Key input
-        ttk.Label(self.control_panel, text="Bing API Key:").pack(side=tk.LEFT, padx=5)
+        api_frame = ttk.LabelFrame(self.control_panel, text="API Settings")
+        api_frame.pack(side=tk.RIGHT, padx=5, fill=tk.X)
+        
+        ttk.Label(api_frame, text="Bing API Key:").pack(side=tk.LEFT, padx=5)
         self.bing_api_var = tk.StringVar()
-        ttk.Entry(self.control_panel, textvariable=self.bing_api_var, width=40).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(api_frame, textvariable=self.bing_api_var, width=40).pack(side=tk.LEFT, padx=5)
         
         # Video display canvas
         self.canvas = tk.Canvas(self.root, bg='black')
@@ -87,8 +70,20 @@ class VideoDisplayApp:
         self.root.bind('s', self.on_s_key)
         self.root.bind('t', self.on_t_key)
         self.root.bind('f', self.on_f_key)
+
+    def toggle_pause(self):
+        """재생/일시정지 토글"""
+        if hasattr(self, 'system_thread') and self.system_thread.is_alive():
+            self.command_queue.put({
+                'type': 'space'
+            })
         
     def open_video(self):
+        """파일에서 비디오 열기"""
+        if hasattr(self, 'system_thread') and self.system_thread.is_alive():
+            self.command_queue.put({'type': 'stop'})
+            self.system_thread.join()
+            
         video_path = filedialog.askopenfilename(
             filetypes=[("Video files", "*.mp4 *.avi *.mkv")]
         )
@@ -101,15 +96,9 @@ class VideoDisplayApp:
                 self.video_dims = (width, height)
                 cap.release()
                 
-                # Start system processing in a separate thread
-                self.system_thread = threading.Thread(
-                    target=system_main,
-                    args=(video_path, self.bing_api_var.get(), True, self.frame_queue, self.command_queue)
-                )
-                self.system_thread.start()
-                
-                # Start frame update
-                self.update_frame()
+                self.video_source = video_path
+                self.start_processing()
+                self.status_var.set(f"Status: Playing video - {os.path.basename(video_path)}")
     
     def on_left_click(self, event):
         if hasattr(self, 'system_thread'):
@@ -120,6 +109,27 @@ class VideoDisplayApp:
                     'type': 'click',
                     'point': click_point
                 })
+
+    def connect_camera(self):
+        """웹캠 연결"""
+        if hasattr(self, 'system_thread') and self.system_thread.is_alive():
+            self.command_queue.put({'type': 'stop'})
+            self.system_thread.join()
+            
+        # Test camera connection
+        cap = cv2.VideoCapture(0)
+        if cap.isOpened():
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.video_dims = (width, height)
+            cap.release()
+            
+            self.video_source = 0  # 웹캠 인덱스
+            self.start_processing()
+            self.status_var.set("Status: Camera connected")
+        else:
+            self.status_var.set("Status: Failed to connect camera")
+            print("Cannot connect to camera")
     
     def on_right_click(self, event):
         self.command_queue.put({
@@ -240,9 +250,9 @@ class VideoDisplayApp:
         return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
         
     def on_closing(self):
-        # Signal system thread to stop
+        """앱 종료 처리"""
         self.command_queue.put({'type': 'stop'})
-        if hasattr(self, 'system_thread'):
+        if hasattr(self, 'system_thread') and self.system_thread.is_alive():
             self.system_thread.join()
         self.root.destroy()
 

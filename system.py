@@ -403,12 +403,20 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True):
     cap.release()
     cv2.destroyAllWindows()
 
+def video_path_or_index(arg):
+    try:
+        # Try converting to int for camera index
+        return int(arg)
+    except ValueError:
+        # If not an integer, treat as file path
+        return str(arg)
+
 if __name__ == "__main__":
     # Parse command line arguments
     # 명령줄 인자 파싱
     parser = argparse.ArgumentParser(description='Object tracking system with video input')
-    parser.add_argument('--video', type=str, default='data/squirrel.mp4',
-                      help='Path to the video file (default: data/squirrel.mp4)')
+    parser.add_argument('--video', type=video_path_or_index, default=0,
+                   help='Camera index (0, 1, ...) or path to video file (default: 0 for webcam)')
     parser.add_argument('--save', action='store_true', default=True,
                       help='Save the processed images (default: True)')
     parser.add_argument('--bing', type=str, default=None,
