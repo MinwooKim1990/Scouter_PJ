@@ -46,7 +46,7 @@ Place your video files in the `data` folder
 
 4. Run the application
 ```bash
-python system.py --video path/to/your/video.mp4 --bing [YOUR-API-KEY]
+python system.py --video path/to/your/video.mp4(integer 0 for webcam, Default: 0) --bing [YOUR-API-KEY]
 ```
 
 5. For checking arguments help
