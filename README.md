@@ -17,6 +17,14 @@ An AI system inspired by Cyberpunk 2077 that combines several advanced features:
   </tr>
 </table>
 
+## GUI Demo Screenshots
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/735d84b8-a426-4614-a867-d36b1c37e6bc" width="400" alt="Demo Screenshot 1"/></td>
+    <td><img src="https://github.com/user-attachments/assets/e5db2cd5-2960-46e8-98bb-fc20fe054402" width="400" alt="Demo Screenshot 2"/></td>
+  </tr>
+</table>
+
 ## Installation and Setup
 
 1. Clone the repository
@@ -46,6 +54,29 @@ python system.py --video path/to/your/video.mp4 --bing [YOUR-API-KEY]
 python system.py --help
 ```
 
+## Use GUI
+
+1. Clone the repository
+```bash
+git clone https://github.com/MinwooKim1990/Scouter_PJ.git
+cd Scouter_PJ
+```
+
+2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+3. Prepare your data
+```bash
+mkdir data
+```
+Place your video files in the `data` folder
+
+4. Run the application
+```bash
+python tkinterapp.py
+```
 
 ## How to Use
 
@@ -75,7 +106,7 @@ python system.py --help
 
 #### Stop Video
 - **Space Key**: 
-  - First Press: Stop video playing and can do object detection
+  - First Press: Stop video playing and can do object detection (GUI system not work)
   - Second Press: play video again
 
 ### Quick Reference
@@ -86,7 +117,7 @@ python system.py --help
 | Toggle Upscaling | F | Enable realtime upscaling |
 | Voice Recording | T | Start/Stop subtitle recording |
 | Image Search | S | Activate Bing image search |
-| play/stop | Space | play/stop video |
+| play/stop | Space | play/stop video (GUI system not work) |
 
 ## Features
 - Zero-shot object detection
