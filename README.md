@@ -7,12 +7,13 @@ An AI system inspired by Cyberpunk 2077 that combines several advanced features:
 - Real-time object enhancement and upscaling
 - Speech-to-text (STT) functionality for accessibility
 - Overlay display system similar to Cyberpunk 2077 Scanner elements
+- Extra information with Bing Search API (Default: Deactivated)
 
 ## Demo Screenshots
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/0c5e8926-57a7-42c0-bf76-7619836c0aa4" width="400" alt="Demo Screenshot 1"/></td>
-    <td><img src="https://github.com/user-attachments/assets/3504bd51-16c5-4421-9963-e9bc8a3ca06c" width="400" alt="Demo Screenshot 2"/></td>
+    <td><img src="https://github.com/user-attachments/assets/0779a6e0-684d-4cf6-89b1-b21d8f02f4b5" width="400" alt="Demo Screenshot 1"/></td>
+    <td><img src="https://github.com/user-attachments/assets/857226e5-17fc-446c-8d08-b207f578cff0" width="400" alt="Demo Screenshot 2"/></td>
   </tr>
 </table>
 
@@ -37,7 +38,7 @@ Place your video files in the `data` folder
 
 4. Run the application
 ```bash
-python system.py --video path/to/your/video.mp4
+python system.py --video path/to/your/video.mp4 --bing [YOUR-API-KEY]
 ```
 
 5. For checking arguments help
@@ -67,6 +68,16 @@ python system.py --help
   - First Press: Starts voice recording for subtitle generation
   - Second Press: Stops recording and processes the subtitle
 
+#### Image Search
+- **S Key**: 
+  - Toggles Activate image search of detected object
+  - Default: Disabled
+
+#### Stop Video
+- **Space Key**: 
+  - First Press: Stop video playing and can do object detection
+  - Second Press: play video again
+
 ### Quick Reference
 | Action | Key/Button | Function |
 |--------|------------|----------|
@@ -74,6 +85,8 @@ python system.py --help
 | Release Tracking | Right Click | Stops tracking current object |
 | Toggle Upscaling | F | Enable realtime upscaling |
 | Voice Recording | T | Start/Stop subtitle recording |
+| Image Search | S | Activate Bing image search |
+| play/stop | Space | play/stop video |
 
 ## Features
 - Zero-shot object detection
@@ -109,6 +122,8 @@ This project utilizes several open-source models:
   - Source: [OpenAI Whisper](https://github.com/openai/whisper)
 - **Florence 2**: Image captioning - MIT License
   - Source: [Microsoft Florence](https://huggingface.co/microsoft/Florence-2-large)
+- **Bing Search API**: Image Search
+  - Source: [Microsoft Azure](https://learn.microsoft.com/en-us/bing/search-apis/bing-image-search/overview)
 
 ## License
 This project is licensed under the MIT License since all major components use either MIT or Apache-2.0 licenses. The MIT License is compatible with both and maintains the open-source nature of the utilized models.

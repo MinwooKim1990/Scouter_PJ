@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw, ImageFont
 class WhisperSTTOverlay:
     # Initialize the STT overlay system
     # STT 오버레이 시스템 초기화
-    def __init__(self, model_type="tiny"):
+    def __init__(self, model_type="medium"):
         self.model = whisper.load_model(model_type)
         # Standard sample rate for Whisper
         # Whisper의 표준 샘플링 레이트
@@ -121,7 +121,7 @@ class WhisperSTTOverlay:
             # 음성 인식 수행
             result = self.model.transcribe(
                 filename,
-                language="ko",
+                language="en",
                 task="transcribe",
                 fp16=False
             )
