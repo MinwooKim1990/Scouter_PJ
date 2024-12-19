@@ -278,7 +278,7 @@ This project uses the following APIs. Please ensure compliance with their respec
   - Documentation: [Anthropic API Documentation](https://docs.anthropic.com/claude/docs)
   - Terms of Service: [Anthropic Terms of Service](https://www.anthropic.com/legal/terms)
   - Usage Guidelines: [Anthropic Usage Policies](https://www.anthropic.com/legal/use-policies)
-  - Licensing: Use of the Anthropic API is subject to their Terms of Service and Acceptable Use Policy. [License](https://www.anthropic.com/legal/acceptable-use)
+  - Licensing: Use of the Anthropic API is subject to their [Terms of Service and Acceptable Use Policy](https://www.anthropic.com/legal/acceptable-use)
 
 ### Note
 To ensure the security of API keys, store them securely using environment variables or secret management solutions. Do not expose sensitive information in public repositories.
