@@ -172,6 +172,16 @@ python tkinterapp.py
   <tr>
     <td>mixtral-8x7b-32768</td>
   </tr>
+    <tr>
+    <td rowspan="5" align="center">Anthropic</td>
+    <td>claude-3-5-sonnet-20241022</td>
+  </tr>
+  <tr>
+    <td>claude-3-opus-20240229</td>
+  </tr>
+  <tr>
+    <td>claude-3-5-haiku-20241022</td>
+  </tr>
 </table>
 
 #### Stop Video
@@ -263,6 +273,12 @@ This project uses the following APIs. Please ensure compliance with their respec
 - **Groq API**:
   - **Documentation**: [Groq API Documentation](https://console.groq.com/docs)
   - **Licensing**: Usage of the Groq API must comply with Groq's API policies. Specific licensing details can be found in their [API documentation](https://console.groq.com/docs).
+
+- **Anthropic API**:
+  - Documentation: [Anthropic API Documentation](https://docs.anthropic.com/claude/docs)
+  - Terms of Service: [Anthropic Terms of Service](https://www.anthropic.com/legal/terms)
+  - Usage Guidelines: [Anthropic Usage Policies](https://www.anthropic.com/legal/use-policies)
+  - Licensing: Use of the Anthropic API is subject to their Terms of Service and Acceptable Use Policy. [License](https://www.anthropic.com/legal/acceptable-use)
 
 ### Note
 To ensure the security of API keys, store them securely using environment variables or secret management solutions. Do not expose sensitive information in public repositories.

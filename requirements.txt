@@ -13,3 +13,4 @@ ultralytics>=8.0.0
 google-generativeai>=0.3.0
 aiohttp>=3.8.0
 python-tk>=3.8.0
+anthropic

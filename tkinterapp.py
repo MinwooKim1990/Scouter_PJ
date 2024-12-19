@@ -70,7 +70,7 @@ class VideoDisplayApp:
         
         # LLM Provider 선택
         ttk.Label(llm_frame, text="Provider:").pack(side=tk.LEFT, padx=5)
-        providers = ["google", "openai", "groq"]
+        providers = ["google", "openai", "groq", 'anthropic']
         provider_combo = ttk.Combobox(llm_frame, textvariable=self.llm_provider,
                                     values=providers, width=10, state="readonly")
         provider_combo.pack(side=tk.LEFT, padx=5)
@@ -131,7 +131,8 @@ class VideoDisplayApp:
         models = {
             "google": ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"],
             "openai": ["gpt-4o-2024-08-06", "gpt-4o-mini-2024-07-18", "o1-2024-12-17", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125"],
-            "groq": ["llama-3.3-70b-versatile", "llama-3.2-90b-text-preview", "llama-3.2-11b-text-preview", "gemma2-9b-it", "mixtral-8x7b-32768",]
+            "groq": ["llama-3.3-70b-versatile", "llama-3.2-90b-text-preview", "llama-3.2-11b-text-preview", "gemma2-9b-it", "mixtral-8x7b-32768",],
+            "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-5-haiku-20241022"]
         }
         self.model_combo['values'] = models.get(provider, [])
         if models.get(provider):
