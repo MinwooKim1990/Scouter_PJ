@@ -172,7 +172,7 @@ python tkinterapp.py
   <tr>
     <td>mixtral-8x7b-32768</td>
   </tr>
-    <tr>
+  <tr>
     <td rowspan="5" align="center">Anthropic</td>
     <td>claude-3-5-sonnet-20241022</td>
   </tr>
