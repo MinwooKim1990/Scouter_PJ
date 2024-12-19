@@ -173,6 +173,7 @@ python tkinterapp.py
     <td>mixtral-8x7b-32768</td>
   </tr>
 </table>
+
 #### Stop Video
 - **Space Key**: 
   - First Press: Stop video playing and can do object detection
