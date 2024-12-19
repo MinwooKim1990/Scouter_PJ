@@ -125,7 +125,54 @@ python tkinterapp.py
 - **A Key**: 
   - First Press: Starts prompt recording for LLM
   - Second Press: Stops prompt recording  and processes the LLM output
-
+<table>
+  <tr>
+    <th>Provider</th>
+    <th>Model</th>
+  </tr>
+  <tr>
+    <td rowspan="4" align="center">Google</td>
+    <td>gemini-2.0-flash-exp</td>
+  </tr>
+  <tr>
+    <td>gemini-1.5-flash</td>
+  </tr>
+  <tr>
+    <td>gemini-1.5-flash-8b</td>
+  </tr>
+  <tr>
+    <td>gemini-1.5-pro</td>
+  </tr>
+  <tr>
+    <td rowspan="4" align="center">OpenAI</td>
+    <td>gpt-4o-2024-08-06</td>
+  </tr>
+  <tr>
+    <td>gpt-4o-mini-2024-07-18</td>
+  </tr>
+  <tr>
+    <td>o1-2024-12-17</td>
+  </tr>
+  <tr>
+    <td>gpt-3.5-turbo-0125</td>
+  </tr>
+  <tr>
+    <td rowspan="5" align="center">GROQ</td>
+    <td>llama-3.3-70b-versatile</td>
+  </tr>
+  <tr>
+    <td>llama-3.2-90b-text-preview</td>
+  </tr>
+  <tr>
+    <td>llama-3.2-11b-text-preview</td>
+  </tr>
+  <tr>
+    <td>gemma2-9b-it</td>
+  </tr>
+  <tr>
+    <td>mixtral-8x7b-32768</td>
+  </tr>
+</table>
 #### Stop Video
 - **Space Key**: 
   - First Press: Stop video playing and can do object detection
