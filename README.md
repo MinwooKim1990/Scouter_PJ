@@ -2,12 +2,12 @@
 AI-powered object detection system with real-time enhancement and accessibility features
 
 #### Contributor:
-Lead Minwoo Kim: [Minwoo Kim Github](https://github.com/MinwooKim1990)
-Duhyeon Nam: [Duhyeon Nam Github](https://github.com/namduhus)
-Nakyung Cho: [Nakyung Cho Github](http://github.com/nakyung1007)
-Seungwoo Hong: [Seungwoo Hong Github](https://github.com/Seungwoo-H1)
-Hyunjun Kim: [Hyunjun Kim Github](https://github.com/hyunjun-kim4984)
-Sumin Hyun: [Sumin Hyun](https://github.com/hellooobella)
+- **Lead System Developer**: Minwoo Kim - [Minwoo Kim Github](https://github.com/MinwooKim1990)
+- **Azure AI Developer**: Duhyeon Nam - [Duhyeon Nam Github](https://github.com/namduhus)
+- **AI Code Engineer**: Nakyung Cho - [Nakyung Cho Github](http://github.com/nakyung1007)
+- **Azure System Developer**: Seungwoo Hong - [Seungwoo Hong Github](https://github.com/Seungwoo-H1)
+- **AI Code Engineer**: Hyunjun Kim - [Hyunjun Kim Github](https://github.com/hyunjun-kim4984)
+- **Azure AI Developer**: Sumin Hyun - [Sumin Hyun Github](https://github.com/hellooobella)
 
 ## Overview
 An AI system inspired by Cyberpunk 2077 that combines several advanced features:
