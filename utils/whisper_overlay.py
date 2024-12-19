@@ -2,6 +2,7 @@ import os
 import cv2
 import time
 import whisper
+import asyncio
 import tempfile
 import threading
 import numpy as np
@@ -9,7 +10,221 @@ import sounddevice as sd
 import scipy.io.wavfile as wav
 
 from queue import Queue
+from utils.asyncllm import LLMClient
 from PIL import Image, ImageDraw, ImageFont
+
+class LLMOverlay:
+    def __init__(self, llm_provider="google", api_key=None, model_name=None):
+        # STT 모델 초기화
+        self.model = whisper.load_model("tiny")
+        self.sample_rate = 16000
+        
+        # LLM 초기화
+        self.llm_client = LLMClient(api_key=api_key, provider=llm_provider)
+        self.model_name = model_name
+        
+        # 상태 관리
+        self.is_recording = False
+        self.is_processing = False
+        self.current_text = None
+        self.text_timestamp = None
+        self.text_display_duration = 15  # 15초 표시
+        
+        # 처리 큐 및 스레드 설정
+        self.processing_queue = Queue()
+        self.should_run = True
+        self.process_thread = threading.Thread(target=self._process_queue)
+        self.process_thread.daemon = True
+        self.process_thread.start()
+
+    def start_recording(self, duration=5):
+        if not self.is_recording:
+            self.is_recording = True
+            self.recording_thread = threading.Thread(
+                target=self._record_audio,
+                args=(duration,)
+            )
+            self.recording_thread.daemon = True
+            self.recording_thread.start()
+            return True
+        return False
+
+    def stop_recording(self):
+        if self.is_recording:
+            self.is_recording = False
+            return True
+        return False
+
+    def _record_audio(self, duration):
+        try:
+            audio_data = sd.rec(
+                int(duration * self.sample_rate),
+                samplerate=self.sample_rate,
+                channels=1,
+                dtype='float32'
+            )
+            sd.wait()
+            self.is_recording = False
+            self.is_processing = True
+            self._transcribe_audio(audio_data)
+        except Exception as e:
+            print(f"LLM Recording error: {e}")
+        finally:
+            self.is_recording = False
+
+    def _transcribe_audio(self, audio_data):
+        try:
+            # Save audio to temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
+                wav.write(temp_audio_file.name, self.sample_rate, 
+                         (audio_data * np.iinfo(np.int16).max).astype(np.int16))
+                filename = temp_audio_file.name
+
+            # Transcribe audio
+            result = self.model.transcribe(
+                filename,
+                language="en",
+                task="transcribe",
+                fp16=False
+            )
+            
+            transcribed_text = result["text"].strip()
+            self.processing_queue.put(transcribed_text)
+            
+            os.remove(filename)
+            
+        except Exception as e:
+            print(f"LLM Transcription error: {e}")
+            self.is_processing = False
+
+    async def process_with_llm(self, text):
+        try:
+            prompt = f"Your response will show in small screen. Shorten your response to 3 or 4 sentences about this user prompt:[{text}]"
+            response = await self.llm_client.call_model(prompt=prompt, model=self.model_name)
+            return response
+        except Exception as e:
+            print(f"LLM processing error: {e}")
+            return f"Error processing request: {str(e)}"
+
+    def _process_queue(self):
+        while self.should_run:
+            try:
+                if not self.processing_queue.empty():
+                    text = self.processing_queue.get()
+                    # Create event loop for async operation
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    response = loop.run_until_complete(self.process_with_llm(text))
+                    loop.close()
+                    
+                    self.current_text = response
+                    self.text_timestamp = time.time()
+                    self.is_processing = False
+                time.sleep(0.1)
+            except Exception as e:
+                print(f"Queue processing error: {e}")
+                self.is_processing = False
+
+    def draw_text(self, frame):
+        if frame is None or not (self.current_text or self.is_processing):
+            return
+
+        if self.current_text and self.text_timestamp:
+            if time.time() - self.text_timestamp > self.text_display_duration:
+                self.current_text = None
+                self.text_timestamp = None
+                return
+
+        display_text = "Processing LLM response..." if self.is_processing else self.current_text
+
+        if not display_text:
+            return
+
+        frame_height, frame_width = frame.shape[:2]
+        max_width = int(frame_width * 5/6)  # 화면 너비의 5/6
+        text_y = 50  # 상단 여백
+
+        try:
+            img_pil = Image.fromarray(frame)
+            draw = ImageDraw.Draw(img_pil)
+
+            # 폰트 크기를 2/3로 줄임 (기존 30에서 20으로)
+            try:
+                font = ImageFont.truetype("malgun.ttf", 20)
+            except:
+                try:
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumGothic.ttf", 20)
+                except:
+                    try:
+                        font = ImageFont.truetype("/usr/share/fonts/nanum/NanumGothic.ttf", 20)
+                    except:
+                        font = ImageFont.load_default()
+
+            # 텍스트를 여러 줄로 나누기
+            words = display_text.split()
+            lines = []
+            current_line = []
+            current_width = 0
+
+            for word in words:
+                word_width = draw.textlength(word + " ", font=font)
+                if current_width + word_width <= max_width:
+                    current_line.append(word)
+                    current_width += word_width
+                else:
+                    lines.append(" ".join(current_line))
+                    current_line = [word]
+                    current_width = word_width
+
+            if current_line:
+                lines.append(" ".join(current_line))
+
+            # 모든 텍스트의 높이 계산
+            line_height = int(font.size * 1.5)  # 줄 간격
+            total_text_height = len(lines) * line_height
+
+            # 배경 크기 계산
+            padding_x = 20
+            padding_y = 10
+            bg_y1 = text_y - padding_y
+            bg_y2 = bg_y1 + total_text_height + 2 * padding_y
+            bg_width = max_width + 2 * padding_x
+            bg_x1 = (frame_width - bg_width) // 2
+            bg_x2 = bg_x1 + bg_width
+
+            # 반투명 배경 그리기
+            overlay = frame.copy()
+            cv2.rectangle(overlay,
+                        (int(bg_x1), int(bg_y1)),
+                        (int(bg_x2), int(bg_y2)),
+                        (0, 0, 0), -1)
+            cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+
+            # 각 줄의 텍스트를 중앙 정렬하여 그리기
+            img_pil = Image.fromarray(frame)
+            draw = ImageDraw.Draw(img_pil)
+            
+            current_y = text_y
+            for line in lines:
+                line_width = draw.textlength(line, font=font)
+                text_x = (frame_width - line_width) // 2  # 각 줄마다 중앙 정렬
+                draw.text(
+                    (text_x, current_y),
+                    line,
+                    font=font,
+                    fill=(255, 255, 255)
+                )
+                current_y += line_height
+
+            frame[:] = np.array(img_pil)
+
+        except Exception as e:
+            print(f"Draw LLM text error: {e}")
+
+    def cleanup(self):
+        self.should_run = False
+        if self.process_thread.is_alive():
+            self.process_thread.join(timeout=1)
 
 class WhisperSTTOverlay:
     # Initialize the STT overlay system

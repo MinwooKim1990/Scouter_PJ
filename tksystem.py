@@ -7,11 +7,11 @@ import argparse
 import numpy as np
 from ultralytics import SAM
 from utils.overlayed_display import ImageOverlay
-from utils.whisper_overlay import WhisperSTTOverlay
 from utils.bing_search_api import BingSearchProcessor
 from utils.srprocessor import SuperResolutionProcessor
 from utils.search_state import SearchState, search_async
 from utils.caption import generate_caption_async, CaptionState
+from utils.whisper_overlay import WhisperSTTOverlay, LLMOverlay
 
 # ResourceManager: Class to manage system resources and tracking states
 # 시스템 자원과 추적 상태를 관리하는 클래스
@@ -39,6 +39,12 @@ class ResourceManager:
         self.is_paused = False  
         # Last processed point to avoid redundant processing / 중복 처리를 방지하기 위한 마지막 처리 지점
         self.last_processed_point = None
+        self.show_instructions = False  # 인스트럭션 표시 여부
+
+    def toggle_instructions(self):
+        """Toggle instruction visibility"""
+        self.show_instructions = not self.show_instructions
+        return self.show_instructions
         
     # Clean up GPU memory and reset results
     # GPU 메모리 정리 및 결과 초기화
@@ -86,19 +92,29 @@ class ResourceManager:
             return True
         return False
 
-def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queue=None, command_queue=None):
+def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queue=None, command_queue=None, 
+         llm_provider="google", llm_api_key=None, llm_model=None):
     """
     수정된 main 함수. 프레임 큐와 명령 큐를 통해 GUI와 통신
     
     Args:
-        video_path: Path to input video / 입력 비디오 경로
-        bing_api: Bing API key for search functionality / 검색 기능을 위한 Bing API 키
-        is_save: Flag to save processed images / 처리된 이미지 저장 여부
-        frame_queue: Queue for sending frames to GUI / GUI로 프레임을 전송하기 위한 큐
-        command_queue: Queue for receiving commands from GUI / GUI로부터 명령을 받기 위한 큐
+        video_path: 입력 비디오 경로
+        bing_api: Bing API key
+        is_save: 이미지 저장 여부
+        frame_queue: GUI로 프레임을 전송하기 위한 큐
+        command_queue: GUI로부터 명령을 받기 위한 큐
+        llm_provider: LLM 제공자 (google, openai, groq)
+        llm_api_key: LLM API 키
+        llm_model: LLM 모델명
     """
     resource_manager = ResourceManager(bing_api=bing_api)
     IO = ImageOverlay()
+    stt_overlay = WhisperSTTOverlay(model_type="tiny")
+    llm_overlay = LLMOverlay(
+        llm_provider=llm_provider,
+        api_key=llm_api_key,
+        model_name=llm_model
+    )
     min_size = 256
     max_size = 512
     sr_processor = SuperResolutionProcessor(min_size, max_size)
@@ -113,8 +129,6 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queu
     if not cap.isOpened():
         print(f"Error: Could not open video file {video_path}")
         return
-
-    stt_overlay = WhisperSTTOverlay(model_type="tiny")
     
     # Get video properties
     fps = int(cap.get(cv2.CAP_PROP_FPS))
@@ -176,14 +190,23 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queu
                         print(f"Search mode {'enabled' if search_mode else 'disabled'}")
                     elif cmd['key'] == 't':
                         if not stt_overlay.is_recording:
-                            print("녹음을 시작합니다...")
-                            stt_overlay.start_recording(duration=5)
+                            print("Starting STT recording...")
+                            stt_overlay.start_recording()
                         else:
-                            print("녹음을 중지합니다.")
+                            print("Stopping STT recording...")
                             stt_overlay.stop_recording()
+                    elif cmd['key'] == 'a':
+                        if not llm_overlay.is_recording:
+                            print("Starting LLM recording...")
+                            llm_overlay.start_recording()
+                        else:
+                            print("Stopping LLM recording...")
+                            llm_overlay.stop_recording()
                     elif cmd['key'] == 'f':
                         resource_manager.fixed_mode = not resource_manager.fixed_mode
                         print(f"Switched to {'fixed' if resource_manager.fixed_mode else 'real-time'} mode")
+                    elif cmd['key'] == 'tab':
+                        resource_manager.toggle_instructions()
                 elif cmd.get('type') == 'stop':
                     break
 
@@ -212,9 +235,12 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queu
 
             # Draw STT overlay
             stt_overlay.draw_text(display_frame)
-
+            llm_overlay.draw_text(display_frame)
+            if not tracking_state['tracking_started'] and not resource_manager.show_instructions:
+                cv2.putText(display_frame, f"Push [tab] key to see all instructions Now video {'Paused' if resource_manager.is_paused else 'Playing'}", (20, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             # Display instructions or process tracking
-            if not tracking_state['tracking_started']:
+            if not tracking_state['tracking_started'] and resource_manager.show_instructions:
                 cv2.putText(display_frame, "Click left button to start tracking", (20, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, "Click right button to cancel tracking", (20, 50),
@@ -223,9 +249,15 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queu
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, "Push [t] key again to finish STT recording", (20, 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, "Push [s] key to toggle search mode", (20, 110),
+                cv2.putText(display_frame, f"Push [s] key to toggle search mode: Now {'On' if resource_manager.search_mode else 'Off'}", (20, 110),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, "Push [Space] to pause/resume video", (20, 130),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, "Push [a] key to start to asking LLM using STT", (20, 150),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"Push [f] key to change SR Mode: Now {'Fixed' if resource_manager.fixed_mode else 'Real-time'}", (20, 170),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"Push [tab] key to close all instructions Now video {'Paused' if resource_manager.is_paused else 'Playing'}", (20, 190),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             if tracking_state['tracking_started']:
                 if tracking_state['click_point'] is not None:
@@ -327,21 +359,14 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True, frame_queu
                                     
                                 IO.click_point = (x + w//2, y + h//2)
                 
-                # Display status information
-                cv2.putText(display_frame, "Right click to cancel tracking", (20, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Press 'f' to {'disable' if resource_manager.fixed_mode else 'enable'} fixed mode", (20, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Mode: {'Fixed' if resource_manager.fixed_mode else 'Real-time'}", (20, 70),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Search Mode: {'On' if resource_manager.search_mode else 'Off'}", (20, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Video: {'Paused' if resource_manager.is_paused else 'Playing'}", (20, 110),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                
-                current_fps = 1.0 / (time.time() - frame_start_time + 1e-6)
-                cv2.putText(display_frame, f"Processing Speed: {int(current_fps)}", (20, 130),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                if resource_manager.show_instructions:
+                    # Display status information
+                    cv2.putText(display_frame, "Right click to cancel tracking", (20, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    
+                    current_fps = 1.0 / (time.time() - frame_start_time + 1e-6)
+                    cv2.putText(display_frame, f"Processing Speed: {int(current_fps)}", (20, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # Send frame to GUI
             if frame_queue is not None:

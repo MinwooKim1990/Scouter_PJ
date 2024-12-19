@@ -1,9 +1,10 @@
-import tkinter as tk
-from tkinter import ttk, filedialog
-from PIL import Image, ImageTk
+import os
 import cv2
 import queue
 import threading
+import tkinter as tk
+from PIL import Image, ImageTk
+from tkinter import ttk, filedialog
 from tksystem import main as system_main
 
 class VideoDisplayApp:
@@ -18,27 +19,40 @@ class VideoDisplayApp:
         # To track the video source
         self.video_source = None
         
+        # LLM 설정을 위한 변수들
+        self.llm_provider = tk.StringVar(value="google")
+        self.llm_model = tk.StringVar()
+        self.llm_api_key = tk.StringVar()
+        
         self.create_gui()
 
     def start_processing(self):
         """비디오 처리 시작"""
         self.system_thread = threading.Thread(
             target=system_main,
-            args=(self.video_source, self.bing_api_var.get(), True, self.frame_queue, self.command_queue)
+            args=(
+                self.video_source, 
+                self.bing_api_var.get(), 
+                True, 
+                self.frame_queue, 
+                self.command_queue,
+                self.llm_provider.get(),
+                self.llm_api_key.get(),
+                self.llm_model.get()
+            )
         )
         self.system_thread.start()
         self.update_frame()
         
     def create_gui(self):
-        # Control panel
+        # Control panel - 상단에 위치
         self.control_panel = ttk.Frame(self.root)
         self.control_panel.pack(fill=tk.X, pady=5, padx=5)
         
-        # Video controls
-        video_controls = ttk.Frame(self.control_panel)
-        video_controls.pack(side=tk.LEFT, padx=5)
+        # 왼쪽: 비디오 컨트롤
+        video_controls = ttk.LabelFrame(self.control_panel, text="Video Controls")
+        video_controls.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        # Video source buttons
         ttk.Button(video_controls, text="Open Video", 
                   command=self.open_video).pack(side=tk.LEFT, padx=5)
         ttk.Button(video_controls, text="Connect Cam", 
@@ -46,30 +60,82 @@ class VideoDisplayApp:
         ttk.Button(video_controls, text="Play/Pause", 
                   command=self.toggle_pause).pack(side=tk.LEFT, padx=5)
         
-        # Status label
+        # 상태 표시 라벨
         self.status_var = tk.StringVar(value="Status: No video source")
         ttk.Label(video_controls, textvariable=self.status_var).pack(side=tk.LEFT, padx=5)
         
-        # Bing API Key input
-        api_frame = ttk.LabelFrame(self.control_panel, text="API Settings")
-        api_frame.pack(side=tk.RIGHT, padx=5, fill=tk.X)
+        # 중앙: LLM 설정
+        llm_frame = ttk.LabelFrame(self.control_panel, text="LLM Settings")
+        llm_frame.pack(side=tk.LEFT, padx=5, fill=tk.X)
         
-        ttk.Label(api_frame, text="Bing API Key:").pack(side=tk.LEFT, padx=5)
+        # LLM Provider 선택
+        ttk.Label(llm_frame, text="Provider:").pack(side=tk.LEFT, padx=5)
+        providers = ["google", "openai", "groq"]
+        provider_combo = ttk.Combobox(llm_frame, textvariable=self.llm_provider,
+                                    values=providers, width=10, state="readonly")
+        provider_combo.pack(side=tk.LEFT, padx=5)
+        provider_combo.bind('<<ComboboxSelected>>', self.update_model_list)
+        
+        # LLM Model 선택
+        ttk.Label(llm_frame, text="Model:").pack(side=tk.LEFT, padx=5)
+        self.model_combo = ttk.Combobox(llm_frame, textvariable=self.llm_model,
+                                      width=20, state="readonly")
+        self.model_combo.pack(side=tk.LEFT, padx=5)
+        
+        # LLM API Key 입력
+        ttk.Label(llm_frame, text="LLM API:").pack(side=tk.LEFT, padx=5)
+        llm_api_entry = ttk.Entry(llm_frame, textvariable=self.llm_api_key, width=30)
+        llm_api_entry.pack(side=tk.LEFT, padx=5)
+        
+        # 오른쪽: Bing API 설정
+        bing_frame = ttk.LabelFrame(self.control_panel, text="Bing API Settings")
+        bing_frame.pack(side=tk.RIGHT, padx=5, fill=tk.X)
+        
+        ttk.Label(bing_frame, text="Bing API:").pack(side=tk.LEFT, padx=5)
         self.bing_api_var = tk.StringVar()
-        ttk.Entry(api_frame, textvariable=self.bing_api_var, width=40).pack(side=tk.LEFT, padx=5)
+        bing_api_entry = ttk.Entry(bing_frame, textvariable=self.bing_api_var, width=30)
+        bing_api_entry.pack(side=tk.LEFT, padx=5)
         
-        # Video display canvas
-        self.canvas = tk.Canvas(self.root, bg='black')
+        # 비디오 디스플레이 캔버스
+        # 비디오 디스플레이 캔버스를 Frame으로 감싸기
+        self.video_frame = ttk.Frame(self.root)
+        self.video_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.canvas = tk.Canvas(self.video_frame, bg='black')
         self.canvas.pack(fill=tk.BOTH, expand=True)
         
-        # Bind mouse events
+        # 마우스 이벤트 바인딩
         self.canvas.bind('<Button-1>', self.on_left_click)
         self.canvas.bind('<Button-3>', self.on_right_click)
         
-        # Bind keyboard events
-        self.root.bind('s', self.on_s_key)
-        self.root.bind('t', self.on_t_key)
-        self.root.bind('f', self.on_f_key)
+        # bind_all 대신 focus_set()을 사용하여 캔버스에 포커스를 주고
+        # 캔버스에 직접 키 이벤트를 바인딩
+        self.canvas.focus_set()
+        self.canvas.bind('<Tab>', self.on_tab_key)
+        self.canvas.bind('<space>', self.on_space)
+        self.canvas.bind('s', self.on_s_key)
+        self.canvas.bind('t', self.on_t_key)
+        self.canvas.bind('f', self.on_f_key)
+        self.canvas.bind('a', self.on_a_key)
+        
+        # 버튼에 포커스가 가지 않도록 설정
+        for child in video_controls.winfo_children():
+            if isinstance(child, ttk.Button):
+                child.configure(takefocus=False)
+        
+        # 초기 모델 리스트 업데이트
+        self.update_model_list()
+
+    def update_model_list(self, event=None):
+        provider = self.llm_provider.get()
+        models = {
+            "google": ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"],
+            "openai": ["gpt-4o-2024-08-06", "gpt-4o-mini-2024-07-18", "o1-2024-12-17", "o1-mini-2024-09-12", "gpt-3.5-turbo-0125"],
+            "groq": ["llama-3.3-70b-versatile", "llama-3.2-90b-text-preview", "llama-3.2-11b-text-preview", "gemma2-9b-it", "mixtral-8x7b-32768",]
+        }
+        self.model_combo['values'] = models.get(provider, [])
+        if models.get(provider):
+            self.model_combo.set(models[provider][0])
 
     def toggle_pause(self):
         """재생/일시정지 토글"""
@@ -137,9 +203,11 @@ class VideoDisplayApp:
         })
     
     def on_space(self, event):
+        event.widget.focus_set()  # 포커스 유지
         self.command_queue.put({
             'type': 'space'
         })
+        return "break"
     
     def on_s_key(self, event):
         """Search mode toggle - Bing API key 확인"""
@@ -151,26 +219,42 @@ class VideoDisplayApp:
             'type': 'key',
             'key': 's'
         })
+        return "break"  # 이벤트 전파 중지
     
     def on_t_key(self, event):
         self.command_queue.put({
             'type': 'key',
             'key': 't'
         })
+        return "break"  # 이벤트 전파 중지
     
     def on_f_key(self, event):
         self.command_queue.put({
             'type': 'key',
             'key': 'f'
         })
+        return "break"  # 이벤트 전파 중지
+    
+    def on_a_key(self, event):
+        self.command_queue.put({
+            'type': 'key',
+            'key': 'a'
+        })
+        return "break"  # 이벤트 전파 중지
+
+    def on_tab_key(self, event):
+        event.widget.focus_set()  # 포커스 유지
+        self.command_queue.put({
+            'type': 'key',
+            'key': 'tab'
+        })
+        return "break"
     
     def get_video_coordinates(self, canvas_x, canvas_y):
-        """실제 비디오 좌표로 변환"""
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
         
         if not hasattr(self, 'video_dims'):
-            # 실제 비디오 크기를 저장할 속성 추가
             self.video_dims = (640, 480)  # 기본값
             
         actual_width, actual_height = self.video_dims
@@ -202,7 +286,6 @@ class VideoDisplayApp:
         return (video_x, video_y)
             
     def update_frame(self):
-        """프레임 업데이트 함수"""
         try:
             if hasattr(self, 'system_thread') and self.frame_queue:
                 try:
@@ -219,10 +302,14 @@ class VideoDisplayApp:
                     if canvas_width > 1 and canvas_height > 1:  # Valid canvas size
                         img = self.resize_frame(img, canvas_width, canvas_height)
                         
+                        # Calculate center position
+                        x_offset = (canvas_width - img.width) // 2
+                        y_offset = (canvas_height - img.height) // 2
+                        
                         # Update canvas
                         self.photo = ImageTk.PhotoImage(image=img)
                         self.canvas.delete("all")
-                        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+                        self.canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=self.photo)
                 except queue.Empty:
                     pass  # No new frame available
                     

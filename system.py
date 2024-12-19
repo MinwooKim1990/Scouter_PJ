@@ -6,11 +6,11 @@ import argparse
 import numpy as np
 from ultralytics import SAM
 from utils.overlayed_display import ImageOverlay
-from utils.whisper_overlay import WhisperSTTOverlay
 from utils.bing_search_api import BingSearchProcessor
 from utils.srprocessor import SuperResolutionProcessor
 from utils.search_state import SearchState, search_async
 from utils.caption import generate_caption_async, CaptionState
+from utils.whisper_overlay import WhisperSTTOverlay, LLMOverlay
 
 # ResourceManager: Class to manage system resources and tracking states
 # 시스템 자원과 추적 상태를 관리하는 클래스
@@ -38,6 +38,12 @@ class ResourceManager:
         self.is_paused = False  
         # Last processed point to avoid redundant processing / 중복 처리를 방지하기 위한 마지막 처리 지점
         self.last_processed_point = None
+        self.show_instructions = False  # 인스트럭션 표시 여부
+
+    def toggle_instructions(self):
+        """Toggle instruction visibility"""
+        self.show_instructions = not self.show_instructions
+        return self.show_instructions
         
     # Clean up GPU memory and reset results
     # GPU 메모리 정리 및 결과 초기화
@@ -118,6 +124,11 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True):
     video_path = video_path
     cap = cv2.VideoCapture(video_path)
     stt_overlay = WhisperSTTOverlay(model_type="tiny")
+    llm_overlay = LLMOverlay(
+        llm_provider=args.llm_provider,
+        api_key=args.llm_api_key,
+        model_name=args.llm_model
+    )
     
     # Get video properties
     # 비디오 속성 가져오기
@@ -192,10 +203,14 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True):
             # Draw STT (Speech-to-Text) results
             # 음성인식 결과 표시
             stt_overlay.draw_text(display_frame)
+            llm_overlay.draw_text(display_frame)
 
-            # Display instructions when not tracking
+            if not tracking_state['tracking_started'] and not resource_manager.show_instructions:
+                cv2.putText(display_frame, f"Push [tab] key to see all instructions Now video {'Paused' if resource_manager.is_paused else 'Playing'}", (20, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            # Display instructions or process tracking
             # 추적 중이 아닐 때 사용 설명서 표시
-            if not tracking_state['tracking_started']:
+            if not tracking_state['tracking_started'] and resource_manager.show_instructions:
                 cv2.putText(display_frame, "Click left button to start tracking", (20, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, "Click right button to cancel tracking", (20, 50),
@@ -204,9 +219,15 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, "Push [t] key again to finish STT recording", (20, 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, "Push [s] key to toggle search mode", (20, 110),
+                cv2.putText(display_frame, f"Push [s] key to toggle search mode: Now {'On' if resource_manager.search_mode else 'Off'}", (20, 110),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, "Push [Space] to pause/resume video", (20, 130),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, "Push [a] key to start to asking LLM using STT", (20, 150),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"Push [f] key to change SR Mode: Now {'Fixed' if resource_manager.fixed_mode else 'Real-time'}", (20, 170),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"Push [tab] key to close all instructions Now video {'Paused' if resource_manager.is_paused else 'Playing'}", (20, 190),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             else:
                 # Process tracking when active
@@ -341,22 +362,15 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True):
                 
                 # Display status information
                 # 상태 정보 표시
-                cv2.putText(display_frame, "Right click to cancel tracking", (20, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Press 'f' to {'disable' if resource_manager.fixed_mode else 'enable'} fixed mode", (20, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Mode: {'Fixed' if resource_manager.fixed_mode else 'Real-time'}", (20, 70),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Search Mode: {'On' if resource_manager.search_mode else 'Off'}", (20, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"Video: {'Paused' if resource_manager.is_paused else 'Playing'}", (20, 110),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                
-                # Calculate and display current FPS
-                # 현재 FPS 계산 및 표시
-                current_fps = 1.0 / (time.time() - frame_start_time + 1e-6)
-                cv2.putText(display_frame, f"Processing Speed: {int(current_fps)}", (20, 130),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                if resource_manager.show_instructions:
+                    # Display status information
+                    cv2.putText(display_frame, "Right click to cancel tracking", (20, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    # Calculate and display current FPS
+                    # 현재 FPS 계산 및 표시
+                    current_fps = 1.0 / (time.time() - frame_start_time + 1e-6)
+                    cv2.putText(display_frame, f"Processing Speed: {int(current_fps)}", (20, 130),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         except Exception as e:
             print(f"Error in main loop: {e}")
@@ -390,16 +404,27 @@ def main(video_path='data/squirrel.mp4', bing_api=None, is_save=True):
             else:
                 print("녹음을 중지합니다.")
                 stt_overlay.stop_recording()
+        elif key == ord('a'):
+            if not llm_overlay.is_recording:
+                print("Starting LLM recording...")
+                llm_overlay.start_recording()
+            else:
+                print("Stopping LLM recording...")
+                llm_overlay.stop_recording()
         elif key == ord('c'): # Clean up tracking / 추적 정리
             cleanup_tracking()
         elif key == 32:  # Space - Toggle pause / 스페이스바 - 일시정지 토글
             is_paused = resource_manager.toggle_pause()
             print(f"Video {'paused' if is_paused else 'resumed'}")
+        elif key == 9:  # Tab key - Toggle instructions / 탭 키 - 인스트럭션 토글
+            resource_manager.toggle_instructions()
+            print("Instructions toggled")
 
     # Cleanup and release resources
     # 정리 및 리소스 해제
     cleanup_tracking()
     stt_overlay.cleanup()
+    llm_overlay.cleanup()
     cap.release()
     cv2.destroyAllWindows()
 
@@ -413,14 +438,37 @@ def video_path_or_index(arg):
 
 if __name__ == "__main__":
     # Parse command line arguments
-    # 명령줄 인자 파싱
     parser = argparse.ArgumentParser(description='Object tracking system with video input')
     parser.add_argument('--video', type=video_path_or_index, default=0,
-                   help='Camera index (0, 1, ...) or path to video file (default: 0 for webcam)')
+                    help='Camera index (0, 1, ...) or path to video file (default: 0 for webcam)')
     parser.add_argument('--save', action='store_true', default=True,
                       help='Save the processed images (default: True)')
     parser.add_argument('--bing', type=str, default=None,
                       help='enter bing search api key (default: None)')
-    
+    parser.add_argument('--llm-provider', type=str, choices=['google', 'openai', 'groq'], 
+                      default='groq', help='LLM provider (default: groq)')
+    parser.add_argument('--llm-api-key', type=str, 
+                      help='API key for the selected LLM provider')
+    parser.add_argument('--llm-model', type=str,
+                      help='Model name for the selected LLM provider')
+
     args = parser.parse_args()
+    import json 
+    file_path = '../../../API_keys/keys.json'
+    with open(file_path, 'r') as file:
+        api = json.load(file)
+
+    # Set default values for LLM arguments if not provided
+    if args.llm_api_key is None:
+        args.llm_api_key = api['groq']  # Empty string as default
+    
+    if args.llm_model is None:
+        # Default models for each provider
+        default_models = {
+            'google': 'gemini-2.0-flash-exp',
+            'openai': "gpt-4o-mini-2024-07-18",
+            'groq': "llama3-8b-8192" 
+        }
+        args.llm_model = default_models.get(args.llm_provider, "llama3-8b-8192" )
+
     main(video_path=args.video, is_save=args.save, bing_api=args.bing)
